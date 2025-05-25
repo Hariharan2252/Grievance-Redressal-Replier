@@ -22,25 +22,3 @@ A GenAI-powered system that drafts polite, case-specific, and tone-adjustable re
 
 ## Getting Started
 
-```bash
-git clone https://github.com/Hariharan2252/Grievance-Redressal-Replier.git
-cd Grievance-Redressal-Replier
-pip install -r requirements.txt
-
-
-Save and close the file.
-
----
-
-### 3. Edit `.gitignore`
-
-- Open the file `.gitignore`
-- Paste this content:
-
-```gitignore
-__pycache__/
-.env
-*.pyc
-*.ipynb_checkpoints
-node_modules/
-build/
