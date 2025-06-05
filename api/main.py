@@ -1,34 +1,46 @@
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Literal
-import openai
+from models.load_model import model, tokenizer
+from api.templates import CLASS_LABELS, TEMPLATES
+import numpy as np
+import tensorflow as tf
+import pickle
 
 app = FastAPI()
 
-openai.api_key = "your-api-key"  # Replace this with your real OpenAI key
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React dev server origin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-class GrievanceInput(BaseModel):
-    message: str
-    tone: Literal["empathetic", "formal", "assertive"]
+class GrievanceRequest(BaseModel):
+    text: str
+    tone: str  # "empathetic", "formal", or "assertive"
 
-@app.post("/generate-reply/")
-async def generate_reply(input: GrievanceInput):
-    prompt = f"""
-    Act as an HR support agent. Respond to this grievance in a {input.tone} tone:
+@app.post("/generate-reply")
+def predict_grievance(request: GrievanceRequest):
+    text = request.text
+    tone = request.tone.lower()
 
-    Grievance: {input.message}
+    # Preprocess
+    seq = tokenizer.texts_to_sequences([text])
+    padded = tf.keras.preprocessing.sequence.pad_sequences(seq, maxlen=100)
 
-    Response:
-    """
+    # Predict
+    prediction = model.predict(padded)
+    predicted_class = int(np.argmax(prediction))
 
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
-        )
-        reply = response.choices[0].message["content"].strip()
-        return {"reply": reply}
+    # Lookup label and response
+    label = CLASS_LABELS.get(predicted_class, "Unknown")
+    response_template = TEMPLATES.get(predicted_class, {}).get(tone, "No response template found for this tone.")
+    generated_response = response_template.format(text=text)
 
-    except Exception as e:
-        return {"error": str(e)}
+    return {
+        "predicted_class": predicted_class,
+        "predicted_label": label,
+        "generated_response": generated_response
+    }

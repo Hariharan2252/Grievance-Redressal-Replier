@@ -1,0 +1,14 @@
+import pickle
+
+# After you fit the tokenizer on your training texts:
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(df['grievance'])
+
+# Save the tokenizer object to a file
+with open('models/tokenizer.pkl', 'wb') as f:
+    pickle.dump(tokenizer, f)
+
+# Assuming your trained model variable is `model`
+model.save('models/rnn_model.h5')
+
+print("Tokenizer and model saved successfully.")

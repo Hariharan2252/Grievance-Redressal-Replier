@@ -1,5 +1,5 @@
-openai
-transformers
-pandas
+fastapi
+uvicorn
+tensorflow
 scikit-learn
-flask
+numpy
