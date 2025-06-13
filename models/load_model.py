@@ -1,15 +1,21 @@
-
 import tensorflow as tf
 import pickle
-import os
+from tensorflow.keras.models import load_model
+from pathlib import Path
 
-# Path to model and tokenizer
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'model.h5')
-TOKENIZER_PATH = os.path.join(os.path.dirname(__file__), 'tokenizer.pkl')
+# Set base path to models/ folder
+base_path = Path(__file__).parent
 
-# Load the trained model
-model = tf.keras.models.load_model(MODEL_PATH)
+# Load the trained multi-output model
+model = load_model(base_path / "grievance_multi_output_model.h5")
 
 # Load the tokenizer
-with open(TOKENIZER_PATH, 'rb') as f:
-    tokenizer = pickle.load(f)
+with open(base_path / "tokenizer.pkl", "rb") as handle:
+    tokenizer = pickle.load(handle)
+
+# Load all three encoders: tone, department, label
+with open(base_path / "encoders.pkl", "rb") as handle:
+    encoders = pickle.load(handle)
+    tone_encoder = encoders["tone"]
+    department_encoder = encoders["department"]
+    label_encoder = encoders["label"]

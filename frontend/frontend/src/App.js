@@ -3,43 +3,53 @@ import './App.css';
 
 function App() {
   const [grievance, setGrievance] = useState('');
-  const [tone, setTone] = useState('empathetic');
-  const [department, setDepartment] = useState('HR');
   const [response, setResponse] = useState('');
+  const [prediction, setPrediction] = useState({});
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  try {
-    const res = await fetch('http://127.0.0.1:8000/generate-reply', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        grievance,
-        tone,
-        department,
-      }),
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-    const data = await res.json();
+    try {
+      const res = await fetch("http://127.0.0.1:8000/generate-reply", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: grievance }),
+      });
 
-    if (res.ok) {
-      setResponse(data.reply);
-      setHistory(prev => [...prev, { grievance, tone, department, reply: data.reply }]);
-    } else {
-      setResponse('Error: ' + JSON.stringify(data.detail || data));
+      const data = await res.json();
+      console.log("Backend Response:", data);
+
+      if (res.ok && data.reply) {
+        setResponse(data.reply);
+        setPrediction({
+          tone: data.predicted_tone,
+          department: data.predicted_department,
+          label: data.predicted_label
+        });
+
+        setHistory(prev => [
+          ...prev,
+          {
+            grievance,
+            reply: data.reply,
+            ...data
+          }
+        ]);
+      } else {
+        setResponse('Error: ' + (data.detail || 'Unexpected response'));
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      setResponse('Error connecting to the server');
     }
-  } catch (err) {
-    setResponse('Error connecting to the server');
-  }
 
-  setLoading(false);
-};
-
+    setLoading(false);
+  };
 
   return (
     <div className="App">
@@ -52,19 +62,6 @@ const handleSubmit = async (e) => {
       />
 
       <div className="controls">
-        <select value={tone} onChange={(e) => setTone(e.target.value)}>
-          <option value="empathetic">Empathetic</option>
-          <option value="formal">Formal</option>
-          <option value="assertive">Assertive</option>
-        </select>
-
-        <select value={department} onChange={(e) => setDepartment(e.target.value)}>
-          <option value="HR">HR</option>
-          <option value="Technical Support">Technical Support</option>
-          <option value="Accounts">Accounts</option>
-          <option value="Admin">Admin</option>
-        </select>
-
         <button onClick={handleSubmit} disabled={loading || !grievance}>
           {loading ? 'Generating...' : 'Generate Reply'}
         </button>
@@ -74,6 +71,11 @@ const handleSubmit = async (e) => {
         <div className="response-box">
           <h3>AI-Generated Response:</h3>
           <p>{response}</p>
+          <div style={{ marginTop: 10 }}>
+            <strong>Predicted Label:</strong> {prediction.label}<br />
+            <strong>Predicted Tone:</strong> {prediction.tone}<br />
+            <strong>Predicted Department:</strong> {prediction.department}
+          </div>
         </div>
       )}
 
@@ -83,7 +85,7 @@ const handleSubmit = async (e) => {
           <ul>
             {history.map((item, index) => (
               <li key={index}>
-                <strong>{item.department} | {item.tone}</strong><br />
+                <strong>{item.predicted_department} | {item.predicted_tone} | {item.predicted_label}</strong><br />
                 <em>{item.grievance}</em><br />
                 {item.reply}
               </li>
